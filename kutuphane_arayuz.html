@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mudanya Üniversitesi | Kütüphane Sistemi</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
+        h2 { color: #2c3e50; font-size: 20px; margin-bottom: 20px; }
+        input[type="text"] {
+            width: 90%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        button {
+            width: 95%;
+            padding: 10px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        button:hover { background-color: #2980b9; }
+        #sonuc {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+            display: none;
+            text-align: left;
+        }
+        .basarili { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .hata { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>OİS Öğrenci Sorgulama Paneli</h2>
+    <!-- Kullanıcının öğrenci numarasını gireceği alan -->
+    <input type="text" id="ogrenci_no" placeholder="Öğrenci Numarasını Giriniz..." autocomplete="off">
+    <button onclick="ogrenciSorgula()">OİS'ten Sorgula</button>
+
+    <!-- Sonuçların gösterileceği alan -->
+    <div id="sonuc"></div>
+</div>
+
+<script>
+    // Kullanıcı butona bastığında çalışacak fonksiyon
+    function ogrenciSorgula() {
+        const ogrNo = document.getElementById('ogrenci_no').value.trim();
+        const sonucDiv = document.getElementById('sonuc');
+        
+        if (ogrNo === "") {
+            gosterMesaj("Lütfen bir öğrenci numarası girin.", "hata");
+            return;
+        }
+
+        // Fetch API ile oluşturduğunuz PHP endpoint'ine istek atıyoruz
+        fetch(`http://localhost/yeni_Kutuphane/ogrenci_kontrol.php?ogrenci_no=${ogrNo}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.durum === "basarili") {
+                    // OİS onayı başarılıysa bilgileri ekrana yazdır
+                    let izniVarMi = data.veri.islem_izni ? 
+                        "<strong>✅ Aktif (Kitap Alabilir)</strong>" : 
+                        "<strong>❌ Pasif (İşlem Yapamaz)</strong>";
+
+                    let html = `
+                        <b>Öğrenci Adı:</b> ${data.veri.ad_soyad} <br>
+                        <b>Bölümü:</b> ${data.veri.bolum} <br><br>
+                        <b>OİS Durumu:</b> ${izniVarMi}
+                    `;
+                    gosterMesaj(html, "basarili");
+                } else {
+                    // Öğrenci bulunamadıysa veya hata varsa
+                    gosterMesaj(`❌ ${data.mesaj}`, "hata");
+                }
+            })
+            .catch(error => {
+                console.error("Hata:", error);
+                gosterMesaj("❌ Sunucu ile iletişim kurulamadı.", "hata");
+            });
+    }
+
+    // Sonuç kutusunun tasarımını ve içeriğini ayarlayan yardımcı fonksiyon
+    function gosterMesaj(mesaj, tur) {
+        const sonucDiv = document.getElementById('sonuc');
+        sonucDiv.innerHTML = mesaj;
+        sonucDiv.className = tur; // 'basarili' veya 'hata' CSS sınıfını uygula
+        sonucDiv.style.display = 'block'; // Kutuyu görünür yap
+    }
+</script>
+
+</body>
+</html>

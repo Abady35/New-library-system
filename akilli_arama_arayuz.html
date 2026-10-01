@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mudanya Üniversitesi | Akıllı Katalog Araması</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f0f2f5;
+            display: flex;
+            justify-content: center;
+            padding-top: 50px;
+            margin: 0;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.05);
+            width: 90%;
+            max-width: 600px;
+        }
+        h2 { 
+            color: #1a365d; 
+            text-align: center;
+            margin-bottom: 5px;
+        }
+        p.subtitle {
+            text-align: center;
+            color: #718096;
+            font-size: 14px;
+            margin-bottom: 25px;
+        }
+        .search-box {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        input[type="text"] {
+            flex: 1;
+            padding: 15px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 16px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+        input[type="text"]:focus {
+            border-color: #3182ce;
+        }
+        button {
+            padding: 15px 25px;
+            background-color: #3182ce;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        button:hover { background-color: #2b6cb0; }
+        
+        /* Arama Sonuçları Kart Tasarımı */
+        .result-card {
+            background: #f7fafc;
+            border-left: 4px solid #3182ce;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 0 8px 8px 0;
+        }
+        .book-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #2d3748;
+            margin: 0 0 5px 0;
+        }
+        .book-author {
+            color: #4a5568;
+            margin: 0 0 8px 0;
+        }
+        .fuzzy-badge {
+            display: inline-block;
+            background: #edf2f7;
+            color: #4a5568;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .error-message {
+            color: #c53030;
+            background: #fff5f5;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Akıllı Kütüphane Araması</h2>
+    <p class="subtitle">Yazım hatası yapsanız bile doğru kitabı sizin için buluruz.</p>
+    
+    <div class="search-box">
+        <input type="text" id="arama_kutusu" placeholder="Örn: Algaritma, Piskoloji, Termodinaik..." autocomplete="off">
+        <button onclick="esnekAramaYap()">Ara</button>
+    </div>
+
+    <div id="sonuclar_alani"></div>
+</div>
+
+<script>
+    // Enter tuşuyla arama yapmayı aktifleştir
+    document.getElementById("arama_kutusu").addEventListener("keypress", function(event) {
+        if (event.key === "Enter") {
+            event.preventDefault();
+            esnekAramaYap();
+        }
+    });
+
+    function esnekAramaYap() {
+        const sorgu = document.getElementById('arama_kutusu').value.trim();
+        const sonuclarAlani = document.getElementById('sonuclar_alani');
+        
+        if (sorgu.length < 3) {
+            sonuclarAlani.innerHTML = '<div class="error-message">Lütfen en az 3 harf giriniz.</div>';
+            return;
+        }
+
+        sonuclarAlani.innerHTML = '<div style="text-align:center; color:#718096;">Aranıyor...</div>';
+
+        // PHP API'mize istek atıyoruz
+        fetch(`akilli_arama.php?q=${encodeURIComponent(sorgu)}`)
+            .then(response => response.json())
+            .then(data => {
+                sonuclarAlani.innerHTML = ''; // Temizle
+                
+                if (data.durum === "basarili") {
+                    data.sonuclar.forEach(kitap => {
+                        // Harf hatası bilgisini görselleştir
+                        let hataBilgisi = kitap.harf_hatasi_sayisi === 0 
+                            ? "✅ Tam Eşleşme" 
+                            : `🔍 ${kitap.harf_hatasi_sayisi} harf hatası tolere edildi`;
+
+                        // Sonuç kartını oluştur
+                        let kart = `
+                            <div class="result-card">
+                                <h3 class="book-title">${kitap.baslik}</h3>
+                                <p class="book-author">Yazar: ${kitap.yazar}</p>
+                                <span class="fuzzy-badge">${hataBilgisi}</span>
+                            </div>
+                        `;
+                        sonuclarAlani.innerHTML += kart;
+                    });
+                } else {
+                    sonuclarAlani.innerHTML = `<div class="error-message">❌ ${data.mesaj}</div>`;
+                }
+            })
+            .catch(error => {
+                console.error("Hata:", error);
+                sonuclarAlani.innerHTML = '<div class="error-message">❌ Sunucu hatası veya bağlantı koptu.</div>';
+            });
+    }
+</script>
+
+</body>
+</html>
